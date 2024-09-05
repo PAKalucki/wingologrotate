@@ -1,0 +1,17 @@
+schedule: "*/5 * * * *"
+
+logs:
+- path: "/tmp/test/logs/delete/*.log"
+  type: delete
+  condition:
+    age: "1h"
+  
+# - path: "/tmp/test/logs/compress/*.log"
+#   type: compress
+#   condition:
+#     max_keep: 5
+
+# - path: "/tmp/test/logs/rotate/*.log"
+#   type: compress
+#   condition:
+#     last_modified: "1h"
