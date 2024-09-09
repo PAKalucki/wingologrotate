@@ -1,9 +1,6 @@
 name: Build and Release Windows Executable
 
 on:
-  push:
-    branches:
-      - master
   release:
     types:
       - created
