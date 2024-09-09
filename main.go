@@ -1,99 +1,65 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
-	"strconv"
-	"time"
+	"strings"
 
-	"gopkg.in/yaml.v3"
+	"golang.org/x/sys/windows/svc"
 )
 
-const config = "./config/wingologrotate.yaml"
-
-// LogEntry represents a single log configuration entry
-type LogEntry struct {
-	Path      string     `yaml:"path"`
-	Type      string     `yaml:"type"`
-	Schedule  string     `yaml:"schedule,omitempty"`
-	Size      string     `yaml:"size,omitempty"`
-	MaxKeep   int        `yaml:"max_keep,omitempty"`
-	Condition *Condition `yaml:"condition,omitempty"`
+func usage(errmsg string) {
+	fmt.Fprintf(os.Stderr,
+		"%s\n\n"+
+			"usage: %s <command>\n"+
+			"       where <command> is one of\n"+
+			"       install, remove, debug, start, stop, pause or continue.\n",
+		errmsg, os.Args[0])
+	os.Exit(2)
 }
 
-type Condition struct {
-	Age string `yaml:"age,omitempty"`
-}
-
-type Config struct {
-	Logs []LogEntry `yaml:"logs"`
-}
-
-type Schedule struct {
-	schedule string `yaml:"schedule"`
-}
-
-func parseDuration(ageStr string) (time.Duration, error) {
-	if len(ageStr) < 2 {
-		return 0, fmt.Errorf("invalid age format: %s", ageStr)
-	}
-
-	// Determine the time unit (h for hours, m for minutes, etc.)
-	unit := ageStr[len(ageStr)-1]
-	value := ageStr[:len(ageStr)-1]
-
-	ageValue, err := strconv.Atoi(value)
-	if err != nil || ageValue < 0 {
-		return 0, fmt.Errorf("invalid age value: %s", value)
-	}
-
-	switch unit {
-	case 'd':
-		return time.Duration(ageValue) * time.Hour * 24, nil
-	case 'h':
-		return time.Duration(ageValue) * time.Hour, nil
-	case 'm':
-		return time.Duration(ageValue) * time.Minute, nil
-	case 's':
-		return time.Duration(ageValue) * time.Second, nil
-	default:
-		return 0, fmt.Errorf("invalid age unit: %c", unit)
-	}
-}
+var svcName = "WingologRotateService"
 
 func main() {
-	// Read the YAML file
-	yamlFile, err := os.ReadFile(config)
+	flag.StringVar(&svcName, "name", svcName, "name of the service")
+	flag.Parse()
+
+	inService, err := svc.IsWindowsService()
 	if err != nil {
-		log.Fatalf("Failed to read YAML file: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to determine if we are running in service: %v", err)
+	}
+	if inService {
+		runService(svcName, false)
+		return
 	}
 
-	// Unmarshal the YAML file into the Config struct
-	var config Config
-	err = yaml.Unmarshal(yamlFile, &config)
+	if len(os.Args) < 2 {
+		usage("no command specified")
+	}
+
+	cmd := strings.ToLower(os.Args[1])
+	switch cmd {
+	case "debug":
+		runService(svcName, true)
+		return
+	case "install":
+		err = installService(svcName, "Wingolog Rotate Service")
+	case "remove":
+		err = removeService(svcName)
+	case "start":
+		err = startService(svcName)
+	case "stop":
+		err = controlService(svcName, svc.Stop, svc.Stopped)
+	case "pause":
+		err = controlService(svcName, svc.Pause, svc.Paused)
+	case "continue":
+		err = controlService(svcName, svc.Continue, svc.Running)
+	default:
+		usage(fmt.Sprintf("invalid command %s", cmd))
+	}
 	if err != nil {
-		log.Fatalf("Failed to parse YAML file: %v", err)
-		os.Exit(1)
+		log.Fatalf("failed to %s %s: %v", cmd, svcName, err)
 	}
-
-	for _, logEntry := range config.Logs {
-		fmt.Println("Path:", logEntry.Path)
-		matchingFiles, err := filepath.Glob(logEntry.Path)
-		if err != nil {
-			log.Printf("Failed to expand wildcard for path %s: %v", logEntry.Path, err)
-			continue
-		}
-
-		if len(matchingFiles) == 0 {
-			fmt.Println("No files found for path:", logEntry.Path)
-		} else {
-			for _, file := range matchingFiles {
-				fmt.Println("Matched file:", file)
-			}
-		}
-	}
-
 }

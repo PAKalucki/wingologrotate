@@ -3,6 +3,7 @@ module pakalucki/wingologrotate
 go 1.22.5
 
 require (
-	gopkg.in/yaml.v2 v2.4.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	github.com/robfig/cron/v3 v3.0.1
+	golang.org/x/sys v0.25.0
+	gopkg.in/yaml.v3 v3.0.1
 )

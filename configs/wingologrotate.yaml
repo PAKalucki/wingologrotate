@@ -4,7 +4,22 @@ logs:
 - path: "/tmp/test/logs/delete/*.log"
   type: delete
   condition:
+    age: "30m"
+
+- path: "/tmp/test/logs/test.log"
+  type: delete
+  condition:
+    age: "15m"
+
+- path: "/tmp/test/logs/compress"
+  type: delete
+  condition:
     age: "1h"
+
+# - path: "/tmp/test/logs/delete/*.size.log"
+#   type: delete
+#   condition:
+#     size: "30MB"
   
 # - path: "/tmp/test/logs/compress/*.log"
 #   type: compress
