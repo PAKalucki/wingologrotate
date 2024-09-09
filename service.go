@@ -17,7 +17,6 @@ func (m *logRotateService) Execute(args []string, r <-chan svc.ChangeRequest, ch
 	const cmdsAccepted = svc.AcceptStop | svc.AcceptShutdown | svc.AcceptPauseAndContinue
 	changes <- svc.Status{State: svc.StartPending}
 
-	// Initialize your log rotation logic here
 	go runLogRotation()
 
 	changes <- svc.Status{State: svc.Running, Accepts: cmdsAccepted}
