@@ -7,14 +7,17 @@ import (
 	"github.com/robfig/cron/v3"
 )
 
-var config = filepath.Join(".", "configs", "wingologrotate.yaml")
-var logOutput = filepath.Join(".", "logs", "wingologrotate.log")
+var (
+	exeDir     = getExecutablePath()
+	configPath = filepath.Join(exeDir, "configs", "wingologrotate.yaml")
+	logOutput  = filepath.Join(exeDir, "logs", "wingologrotate.log")
+)
 
 func runLogRotation() {
 	setupLogging(logOutput)
 	defer closeLogFile()
 
-	config, err := loadConfig(config)
+	config, err := loadConfig(configPath)
 	if err != nil {
 		log.Fatalf("Failed to load configuration: %v", err)
 	}

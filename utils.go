@@ -129,3 +129,11 @@ func createTask(logEntry LogEntry) func() {
 		}
 	}
 }
+
+func getExecutablePath() string {
+	exePath, err := os.Executable()
+	if err != nil {
+		log.Fatalf("Failed to get executable path: %v", err)
+	}
+	return filepath.Dir(exePath)
+}

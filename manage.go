@@ -14,13 +14,11 @@ func startService(name string) error {
 		return err
 	}
 	defer m.Disconnect()
-
 	s, err := m.OpenService(name)
 	if err != nil {
 		return fmt.Errorf("could not access service: %v", err)
 	}
 	defer s.Close()
-
 	err = s.Start("is", "manual-started")
 	if err != nil {
 		return fmt.Errorf("could not start service: %v", err)
@@ -34,18 +32,15 @@ func controlService(name string, c svc.Cmd, to svc.State) error {
 		return err
 	}
 	defer m.Disconnect()
-
 	s, err := m.OpenService(name)
 	if err != nil {
 		return fmt.Errorf("could not access service: %v", err)
 	}
 	defer s.Close()
-
 	status, err := s.Control(c)
 	if err != nil {
 		return fmt.Errorf("could not send control=%d: %v", c, err)
 	}
-
 	timeout := time.Now().Add(10 * time.Second)
 	for status.State != to {
 		if timeout.Before(time.Now()) {
