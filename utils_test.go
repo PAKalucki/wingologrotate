@@ -83,7 +83,7 @@ func TestExePath(t *testing.T) {
 
 	tempDir := t.TempDir()
 
-	exeFile := filepath.Join(tempDir, "testexe")
+	exeFile := filepath.Join(tempDir, "testexe.exe")
 	if err := os.WriteFile(exeFile, []byte{}, 0755); err != nil {
 		t.Fatalf("Failed to create test executable: %v", err)
 	}
@@ -108,7 +108,7 @@ func TestExePath(t *testing.T) {
 		},
 		{
 			name:        "Executable without extension",
-			args:        []string{exeFile[:len(exeFile)-4]},
+			args:        []string{exeFile[:len(exeFile)-4]}, // Remove the .exe extension
 			expectPath:  exeFile,
 			expectError: false,
 		},

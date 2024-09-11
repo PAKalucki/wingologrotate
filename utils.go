@@ -118,14 +118,19 @@ func compressLogFile(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("failed to create compressed file: %v", err)
 	}
-	defer outputFile.Close()
+	defer func() {
+		outputFile.Close()
+	}()
 
 	gzipWriter := gzip.NewWriter(outputFile)
-	defer gzipWriter.Close()
-
 	if _, err := io.Copy(gzipWriter, inputFile); err != nil {
+		gzipWriter.Close()
 		return fmt.Errorf("failed to compress file: %v", err)
 	}
+	gzipWriter.Close()
+
+	inputFile.Close()
+	outputFile.Close()
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to remove original file after compression: %v", err)
