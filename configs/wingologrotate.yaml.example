@@ -1,0 +1,19 @@
+schedule: "0 0 * * *"
+
+logs:
+- path: "/tmp/test/logs/delete/*.log"
+  type: delete
+  condition:
+    age: "30m"
+  
+- path: "/tmp/test/logs/compress/*.log"
+  type: rotate
+  condition:
+    max_keep: 5
+    size: "30MB"
+    compress: true
+
+- path:
+    - "/path1/*.log"
+    - "/path2/*.log"
+  type: delete

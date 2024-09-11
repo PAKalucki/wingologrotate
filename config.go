@@ -8,8 +8,10 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+type Paths []string
+
 type LogEntry struct {
-	Path      string     `yaml:"path"`
+	Path      Paths      `yaml:"path"`
 	Type      string     `yaml:"type"`
 	Condition *Condition `yaml:"condition,omitempty"`
 }
@@ -54,4 +56,20 @@ func loadConfig(filePath string) (Config, error) {
 	}
 
 	return config, nil
+}
+
+func (p *Paths) UnmarshalYAML(value *yaml.Node) error {
+	var singlePath string
+	if err := value.Decode(&singlePath); err == nil {
+		*p = Paths{singlePath}
+		return nil
+	}
+
+	var multiplePaths []string
+	if err := value.Decode(&multiplePaths); err == nil {
+		*p = Paths(multiplePaths)
+		return nil
+	}
+
+	return fmt.Errorf("failed to unmarshal path, expected a string or a list of strings")
 }
