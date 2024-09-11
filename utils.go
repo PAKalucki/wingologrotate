@@ -1,14 +1,16 @@
 package main
 
 import (
+	"compress/gzip"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"sort"
 	"strconv"
+	"strings"
 	"time"
-
-	"gopkg.in/yaml.v3"
 )
 
 var logFile *os.File
@@ -72,68 +74,118 @@ func parseDuration(ageStr string) (time.Duration, error) {
 	}
 }
 
-func loadConfig(filePath string) (Config, error) {
-	yamlFile, err := os.ReadFile(filepath.Clean(filePath))
-	if err != nil {
-		return Config{}, fmt.Errorf("failed to read YAML file: %v", err)
-	}
-
-	var config Config
-	err = yaml.Unmarshal(yamlFile, &config)
-	if err != nil {
-		return Config{}, fmt.Errorf("failed to parse YAML file: %v", err)
-	}
-
-	return config, nil
-}
-
-func createTask(logEntry LogEntry) func() {
-	return func() {
-		log.Printf("Running task for path: %s", logEntry.Path)
-		matchingFiles, err := filepath.Glob(filepath.Clean(logEntry.Path))
-		if err != nil {
-			log.Printf("Failed to expand wildcard for path %s: %v", logEntry.Path, err)
-			return
-		}
-
-		if logEntry.Type == "delete" {
-			for _, file := range matchingFiles {
-				if logEntry.Condition != nil && logEntry.Condition.Age != "" {
-					ageDuration, err := parseDuration(logEntry.Condition.Age)
-					if err != nil {
-						log.Printf("Invalid age format for file %s: %v", file, err)
-						continue
-					}
-
-					fileInfo, err := os.Stat(file)
-					if err != nil {
-						log.Printf("Failed to get file info for %s: %v", file, err)
-						continue
-					}
-					fileAge := time.Since(fileInfo.ModTime())
-
-					if fileAge < ageDuration {
-						// log.Printf("Skipping file %s, does not meet age condition (%s)", file, logEntry.Condition.Age)
-						continue
-					}
-				}
-
-				log.Printf("Deleting file: %s", file)
-				err := os.Remove(file)
-				if err != nil {
-					log.Printf("Failed to delete file %s: %v", file, err)
-				} else {
-					log.Printf("Successfully deleted file: %s", file)
-				}
-			}
-		}
-	}
-}
-
 func getExecutablePath() string {
 	exePath, err := os.Executable()
 	if err != nil {
 		log.Fatalf("Failed to get executable path: %v", err)
 	}
 	return filepath.Dir(exePath)
+}
+
+func parseSize(sizeStr string) (int64, error) {
+	sizeStr = strings.ToUpper(strings.TrimSpace(sizeStr))
+	var multiplier int64 = 1
+
+	switch {
+	case strings.HasSuffix(sizeStr, "KB"):
+		multiplier = 1024
+		sizeStr = strings.TrimSuffix(sizeStr, "KB")
+	case strings.HasSuffix(sizeStr, "MB"):
+		multiplier = 1024 * 1024
+		sizeStr = strings.TrimSuffix(sizeStr, "MB")
+	case strings.HasSuffix(sizeStr, "GB"):
+		multiplier = 1024 * 1024 * 1024
+		sizeStr = strings.TrimSuffix(sizeStr, "GB")
+	}
+
+	sizeValue, err := strconv.ParseInt(sizeStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid size: %s", sizeStr)
+	}
+
+	return sizeValue * multiplier, nil
+}
+
+func compressLogFile(filePath string) error {
+	inputFile, err := os.Open(filePath)
+	if err != nil {
+		return fmt.Errorf("failed to open file for compression: %v", err)
+	}
+	defer inputFile.Close()
+
+	compressedFilePath := filePath + ".gz"
+	outputFile, err := os.Create(compressedFilePath)
+	if err != nil {
+		return fmt.Errorf("failed to create compressed file: %v", err)
+	}
+	defer outputFile.Close()
+
+	gzipWriter := gzip.NewWriter(outputFile)
+	defer gzipWriter.Close()
+
+	if _, err := io.Copy(gzipWriter, inputFile); err != nil {
+		return fmt.Errorf("failed to compress file: %v", err)
+	}
+
+	if err := os.Remove(filePath); err != nil {
+		return fmt.Errorf("failed to remove original file after compression: %v", err)
+	}
+
+	return nil
+}
+
+func removeOldLogFiles(dir, baseFileName string, maxKeep int) error {
+	matches, err := filepath.Glob(filepath.Join(dir, baseFileName+".*"))
+	if err != nil {
+		return fmt.Errorf("failed to list rotated log files: %v", err)
+	}
+
+	sort.Slice(matches, func(i, j int) bool {
+		fileInfoI, err := os.Stat(matches[i])
+		if err != nil {
+			return false
+		}
+		fileInfoJ, err := os.Stat(matches[j])
+		if err != nil {
+			return true
+		}
+		return fileInfoI.ModTime().Before(fileInfoJ.ModTime())
+	})
+
+	for len(matches) > maxKeep {
+		oldestFile := matches[0]
+		if err := os.Remove(oldestFile); err != nil {
+			return fmt.Errorf("failed to remove old log file %s: %v", oldestFile, err)
+		}
+		log.Printf("Removed old log file: %s", oldestFile)
+		matches = matches[1:] // Update the list after removal
+	}
+
+	return nil
+}
+
+func exePath() (string, error) {
+	prog := os.Args[0]
+	p, err := filepath.Abs(prog)
+	if err != nil {
+		return "", err
+	}
+	fi, err := os.Stat(p)
+	if err == nil {
+		if !fi.Mode().IsDir() {
+			return p, nil
+		}
+		err = fmt.Errorf("%s is directory", p)
+	}
+	if filepath.Ext(p) == "" {
+		p += ".exe"
+		fi, err := os.Stat(p)
+		if err == nil {
+			if !fi.Mode().IsDir() {
+				return p, nil
+			}
+			err = fmt.Errorf("%s is directory", p)
+		}
+	}
+	return "", err
 }

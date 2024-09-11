@@ -21,10 +21,12 @@ logs:
 #   condition:
 #     size: "30MB"
   
-# - path: "/tmp/test/logs/compress/*.log"
-#   type: compress
-#   condition:
-#     max_keep: 5
+- path: "/tmp/test/logs/compress/*.log"
+  type: rotate
+  condition:
+    max_keep: 5 // if missing and type rotate it should be default 3
+    size: "30MB" // required
+    compress: true // if missing and type rotate it should be default true
 
 # - path: "/tmp/test/logs/rotate/*.log"
 #   type: compress
