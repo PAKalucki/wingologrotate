@@ -16,7 +16,6 @@ import (
 var logFile *os.File
 
 func setupLogging(outputFilePath string) {
-	// Create the directory if it doesn't exist
 	logDir := filepath.Dir(outputFilePath)
 	if _, err := os.Stat(logDir); os.IsNotExist(err) {
 		err := os.MkdirAll(logDir, 0755)
@@ -51,7 +50,6 @@ func parseDuration(ageStr string) (time.Duration, error) {
 		return 0, fmt.Errorf("invalid age format: %s", ageStr)
 	}
 
-	// Determine the time unit (h for hours, m for minutes, etc.)
 	unit := ageStr[len(ageStr)-1]
 	value := ageStr[:len(ageStr)-1]
 
@@ -163,7 +161,7 @@ func removeOldLogFiles(dir, baseFileName string, maxKeep int) error {
 			return fmt.Errorf("failed to remove old log file %s: %v", oldestFile, err)
 		}
 		log.Printf("Removed old log file: %s", oldestFile)
-		matches = matches[1:] // Update the list after removal
+		matches = matches[1:]
 	}
 
 	return nil

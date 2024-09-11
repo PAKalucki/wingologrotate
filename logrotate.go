@@ -26,12 +26,10 @@ func runLogRotation() {
 
 	c := cron.New()
 
-	// Schedule tasks based on the configuration
 	for _, logEntry := range config.Logs {
 		schedule := config.Schedule
 		task := createTask(logEntry)
 
-		// Add the task to the cron scheduler
 		_, err := c.AddFunc(schedule, task)
 		if err != nil {
 			log.Printf("Failed to schedule task for path %s: %v", logEntry.Path, err)
@@ -40,10 +38,8 @@ func runLogRotation() {
 		}
 	}
 
-	// Start the cron scheduler
 	c.Start()
 
-	// Keep the program running
 	select {}
 
 }

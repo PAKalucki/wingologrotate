@@ -108,7 +108,7 @@ func TestExePath(t *testing.T) {
 		},
 		{
 			name:        "Executable without extension",
-			args:        []string{exeFile[:len(exeFile)-4]}, // Remove the .exe extension
+			args:        []string{exeFile[:len(exeFile)-4]},
 			expectPath:  exeFile,
 			expectError: false,
 		},
