@@ -9,14 +9,14 @@ import (
 func TestLoadConfig(t *testing.T) {
 	yamlContent := `
 logs:
-- path: "/path/to/log/*.log"
-	type: delete
-- path:
-		- "/path/to/log1/*.log"
-		- "/path/to/log2/*.log"
-	type: rotate
-	condition:
-		size: "100MB"
+  - path: "/path/to/log/*.log"
+    type: delete
+  - path:
+      - "/path/to/log1/*.log"
+      - "/path/to/log2/*.log"
+    type: rotate
+    condition:
+      size: "100MB"
 schedule: "*/5 * * * *"
 `
 
