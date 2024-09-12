@@ -30,7 +30,6 @@ schedule: "*/5 * * * *"
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Verify loaded config values
 	if len(config.Logs) != 2 {
 		t.Errorf("Expected 2 log entries, got %d", len(config.Logs))
 	}

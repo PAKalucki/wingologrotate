@@ -12,7 +12,6 @@ import (
 func TestRotateLogFiles(t *testing.T) {
 	tempDir := t.TempDir()
 
-	// Create test log files
 	file1 := filepath.Join(tempDir, "log1.log")
 	file2 := filepath.Join(tempDir, "log2.log")
 	_ = os.WriteFile(file1, make([]byte, 1024*1024*5), 0644)  // 5MB log file
@@ -22,7 +21,7 @@ func TestRotateLogFiles(t *testing.T) {
 		Path: Paths{filepath.Join(tempDir, "*.log")},
 		Type: "rotate",
 		Condition: &Condition{
-			Size:     stringPtr("1MB"), // Should trigger rotation
+			Size:     stringPtr("1MB"),
 			Compress: boolPtr(true),
 			MaxKeep:  intPtr(1),
 		},
@@ -41,7 +40,6 @@ func TestRotateLogFiles(t *testing.T) {
 	}
 }
 
-// Helper functions for creating pointers to primitives
 func stringPtr(s string) *string {
 	return &s
 }
@@ -65,11 +63,9 @@ func TestCreateTask(t *testing.T) {
 
 	task := createTask(logEntry)
 
-	// Mock logging
 	logBuf := new(bytes.Buffer)
 	log.SetOutput(logBuf)
 
-	// Run the task
 	task()
 
 	if !strings.Contains(logBuf.String(), "Running task for path: /tmp/test/logs/delete/*.log") {

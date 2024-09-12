@@ -73,7 +73,6 @@ func createTask(logEntry LogEntry) func() {
 						fileAge := time.Since(fileInfo.ModTime())
 
 						if fileAge < ageDuration {
-							// log.Printf("Skipping file %s, does not meet age condition (%s)", file, logEntry.Condition.Age)
 							continue
 						}
 					}
@@ -113,7 +112,6 @@ func rotateLogFiles(logEntry LogEntry) {
 				continue
 			}
 
-			// Check the size condition, if provided
 			rotateDueToSize := false
 			if logEntry.Condition.Size != nil {
 				maxSize, err := parseSize(*logEntry.Condition.Size)
@@ -127,7 +125,6 @@ func rotateLogFiles(logEntry LogEntry) {
 				}
 			}
 
-			// Check the age condition, if provided
 			rotateDueToAge := false
 			if logEntry.Condition.Age != nil {
 				ageDuration, err := parseDuration(*logEntry.Condition.Age)
@@ -142,7 +139,6 @@ func rotateLogFiles(logEntry LogEntry) {
 				}
 			}
 
-			// Rotate the file if either size or age condition is met
 			if rotateDueToSize || rotateDueToAge {
 				rotatedFilePath := fmt.Sprintf("%s.%s", file, time.Now().Format("20060102-150405"))
 				if err := os.Rename(file, rotatedFilePath); err != nil {
@@ -151,7 +147,6 @@ func rotateLogFiles(logEntry LogEntry) {
 				}
 				log.Printf("Rotated log file: %s to %s", file, rotatedFilePath)
 
-				// Compress the rotated log file if necessary
 				if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
 					if err := compressLogFile(rotatedFilePath); err != nil {
 						log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
@@ -160,7 +155,6 @@ func rotateLogFiles(logEntry LogEntry) {
 					}
 				}
 
-				// Remove old log files if MaxKeep is set
 				if logEntry.Condition.MaxKeep != nil {
 					if err := removeOldLogFiles(filepath.Dir(file), filepath.Base(file), *logEntry.Condition.MaxKeep); err != nil {
 						log.Printf("Failed to remove old log files: %v", err)
