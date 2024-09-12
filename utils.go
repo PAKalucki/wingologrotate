@@ -157,6 +157,10 @@ func compressLogFile(filePath string, compressionFormat string) error {
 		return err
 	}
 
+	if err := inputFile.Close(); err != nil {
+		return fmt.Errorf("failed to close input file: %v", err)
+	}
+
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to remove original file after compression: %v", err)
 	}
