@@ -1,0 +1,14 @@
+schedule: "*/30 * * * *"
+
+logs:
+- path: "C:\\workspace\\test\\test_logs\\test2\\*.txt"
+  type: delete
+  condition:
+    age: "30m"
+
+- path:
+    - "C:\\workspace\\test\\test_logs\\test3\\*.txt"
+    - "C:\\workspace\\test\\test_logs\\test4\\*.txt"
+  type: delete
+  condition:
+    age: "30m"
