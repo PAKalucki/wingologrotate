@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"compress/gzip"
 	"fmt"
 	"io"
@@ -104,31 +105,62 @@ func parseSize(sizeStr string) (int64, error) {
 	return sizeValue * multiplier, nil
 }
 
-func compressLogFile(filePath string) error {
+func compressLogFile(filePath string, compressionFormat *string) error {
+	format := "gzip"
+	if compressionFormat != nil && *compressionFormat != "" {
+		format = *compressionFormat
+	}
+
+	var compressedFilePath string
+	var compressFunc func(input *os.File, output *os.File) error
+
+	switch format {
+	case "gzip":
+		compressedFilePath = filePath + ".gz"
+		compressFunc = func(input *os.File, output *os.File) error {
+			gzipWriter := gzip.NewWriter(output)
+			defer gzipWriter.Close()
+
+			if _, err := io.Copy(gzipWriter, input); err != nil {
+				return fmt.Errorf("failed to compress file with gzip: %v", err)
+			}
+			return nil
+		}
+	case "zip":
+		compressedFilePath = filePath + ".zip"
+		compressFunc = func(input *os.File, output *os.File) error {
+			archive := zip.NewWriter(output)
+			defer archive.Close()
+
+			writer, err := archive.Create(filepath.Base(filePath))
+			if err != nil {
+				return fmt.Errorf("failed to create zip entry: %v", err)
+			}
+
+			if _, err := io.Copy(writer, input); err != nil {
+				return fmt.Errorf("failed to write to zip: %v", err)
+			}
+			return nil
+		}
+	default:
+		return fmt.Errorf("unsupported compression format: %s", compressionFormat)
+	}
+
 	inputFile, err := os.Open(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to open file for compression: %v", err)
 	}
 	defer inputFile.Close()
 
-	compressedFilePath := filePath + ".gz"
 	outputFile, err := os.Create(compressedFilePath)
 	if err != nil {
 		return fmt.Errorf("failed to create compressed file: %v", err)
 	}
-	defer func() {
-		outputFile.Close()
-	}()
+	defer outputFile.Close()
 
-	gzipWriter := gzip.NewWriter(outputFile)
-	if _, err := io.Copy(gzipWriter, inputFile); err != nil {
-		gzipWriter.Close()
-		return fmt.Errorf("failed to compress file: %v", err)
+	if err := compressFunc(inputFile, outputFile); err != nil {
+		return err
 	}
-	gzipWriter.Close()
-
-	inputFile.Close()
-	outputFile.Close()
 
 	if err := os.Remove(filePath); err != nil {
 		return fmt.Errorf("failed to remove original file after compression: %v", err)

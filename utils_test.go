@@ -1,6 +1,7 @@
 package main
 
 import (
+	"archive/zip"
 	"bytes"
 	"compress/gzip"
 	"io"
@@ -146,38 +147,101 @@ func TestCompressLogFile(t *testing.T) {
 		t.Fatalf("Failed to create test log file: %v", err)
 	}
 
-	err = compressLogFile(originalFilePath)
-	if err != nil {
-		t.Fatalf("compressLogFile() error: %v", err)
-	}
+	// Test Default Compression (GZip)
+	t.Run("Default Compression (GZip)", func(t *testing.T) {
+		err = compressLogFile(originalFilePath, nil) // No format specified
+		if err != nil {
+			t.Fatalf("compressLogFile() error: %v", err)
+		}
 
-	compressedFilePath := originalFilePath + ".gz"
-	if _, err := os.Stat(compressedFilePath); os.IsNotExist(err) {
-		t.Errorf("Compressed file does not exist: %s", compressedFilePath)
-	}
+		compressedFilePath := originalFilePath + ".gz"
+		if _, err := os.Stat(compressedFilePath); os.IsNotExist(err) {
+			t.Errorf("Compressed file does not exist: %s", compressedFilePath)
+		}
 
-	if _, err := os.Stat(originalFilePath); err == nil {
-		t.Errorf("Original file still exists: %s", originalFilePath)
-	}
+		if _, err := os.Stat(originalFilePath); err == nil {
+			t.Errorf("Original file still exists: %s", originalFilePath)
+		}
 
-	compressedFile, err := os.Open(compressedFilePath)
-	if err != nil {
-		t.Fatalf("Failed to open compressed file: %v", err)
-	}
-	defer compressedFile.Close()
+		compressedFile, err := os.Open(compressedFilePath)
+		if err != nil {
+			t.Fatalf("Failed to open compressed file: %v", err)
+		}
+		defer compressedFile.Close()
 
-	gzipReader, err := gzip.NewReader(compressedFile)
-	if err != nil {
-		t.Fatalf("Failed to create gzip reader: %v", err)
-	}
-	defer gzipReader.Close()
+		gzipReader, err := gzip.NewReader(compressedFile)
+		if err != nil {
+			t.Fatalf("Failed to create gzip reader: %v", err)
+		}
+		defer gzipReader.Close()
 
-	var decompressedContent bytes.Buffer
-	if _, err := io.Copy(&decompressedContent, gzipReader); err != nil {
-		t.Fatalf("Failed to decompress file: %v", err)
-	}
+		var decompressedContent bytes.Buffer
+		if _, err := io.Copy(&decompressedContent, gzipReader); err != nil {
+			t.Fatalf("Failed to decompress file: %v", err)
+		}
 
-	if !bytes.Equal(decompressedContent.Bytes(), originalContent) {
-		t.Errorf("Decompressed content does not match original. Got: %s, Want: %s", decompressedContent.String(), string(originalContent))
-	}
+		if !bytes.Equal(decompressedContent.Bytes(), originalContent) {
+			t.Errorf("Decompressed content does not match original. Got: %s, Want: %s", decompressedContent.String(), string(originalContent))
+		}
+	})
+
+	// Test Zip Compression
+	t.Run("Zip Compression", func(t *testing.T) {
+		// Recreate the original file since it was removed by the previous test
+		err = os.WriteFile(originalFilePath, originalContent, 0644)
+		if err != nil {
+			t.Fatalf("Failed to create test log file: %v", err)
+		}
+
+		err = compressLogFile(originalFilePath, stringPtr("zip"))
+		if err != nil {
+			t.Fatalf("compressLogFile() error: %v", err)
+		}
+
+		compressedFilePath := originalFilePath + ".zip"
+		if _, err := os.Stat(compressedFilePath); os.IsNotExist(err) {
+			t.Errorf("Compressed file does not exist: %s", compressedFilePath)
+		}
+
+		if _, err := os.Stat(originalFilePath); err == nil {
+			t.Errorf("Original file still exists: %s", originalFilePath)
+		}
+
+		zipFile, err := os.Open(compressedFilePath)
+		if err != nil {
+			t.Fatalf("Failed to open zip file: %v", err)
+		}
+		defer zipFile.Close()
+
+		zipReader, err := zip.NewReader(zipFile, zipFileSize(zipFile))
+		if err != nil {
+			t.Fatalf("Failed to create zip reader: %v", err)
+		}
+
+		// Check for the existence of the original file inside the zip
+		if len(zipReader.File) == 0 || zipReader.File[0].Name != "test.log" {
+			t.Fatalf("Expected zipped file to contain 'test.log', got: %v", zipReader.File)
+		}
+
+		zippedFile, err := zipReader.File[0].Open()
+		if err != nil {
+			t.Fatalf("Failed to open file inside zip: %v", err)
+		}
+		defer zippedFile.Close()
+
+		var decompressedContent bytes.Buffer
+		if _, err := io.Copy(&decompressedContent, zippedFile); err != nil {
+			t.Fatalf("Failed to decompress file from zip: %v", err)
+		}
+
+		if !bytes.Equal(decompressedContent.Bytes(), originalContent) {
+			t.Errorf("Decompressed content from zip does not match original. Got: %s, Want: %s", decompressedContent.String(), string(originalContent))
+		}
+	})
+}
+
+// Helper function to get zip file size
+func zipFileSize(file *os.File) int64 {
+	fileInfo, _ := file.Stat()
+	return fileInfo.Size()
 }
