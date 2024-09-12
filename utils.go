@@ -105,16 +105,11 @@ func parseSize(sizeStr string) (int64, error) {
 	return sizeValue * multiplier, nil
 }
 
-func compressLogFile(filePath string, compressionFormat *string) error {
-	format := "gzip"
-	if compressionFormat != nil && *compressionFormat != "" {
-		format = *compressionFormat
-	}
-
+func compressLogFile(filePath string, compressionFormat string) error {
 	var compressedFilePath string
 	var compressFunc func(input *os.File, output *os.File) error
 
-	switch format {
+	switch compressionFormat {
 	case "gzip":
 		compressedFilePath = filePath + ".gz"
 		compressFunc = func(input *os.File, output *os.File) error {

@@ -147,9 +147,8 @@ func TestCompressLogFile(t *testing.T) {
 		t.Fatalf("Failed to create test log file: %v", err)
 	}
 
-	// Test Default Compression (GZip)
-	t.Run("Default Compression (GZip)", func(t *testing.T) {
-		err = compressLogFile(originalFilePath, nil) // No format specified
+	t.Run("gzip Compression", func(t *testing.T) {
+		err = compressLogFile(originalFilePath, "gzip")
 		if err != nil {
 			t.Fatalf("compressLogFile() error: %v", err)
 		}
@@ -185,15 +184,13 @@ func TestCompressLogFile(t *testing.T) {
 		}
 	})
 
-	// Test Zip Compression
 	t.Run("Zip Compression", func(t *testing.T) {
-		// Recreate the original file since it was removed by the previous test
 		err = os.WriteFile(originalFilePath, originalContent, 0644)
 		if err != nil {
 			t.Fatalf("Failed to create test log file: %v", err)
 		}
 
-		err = compressLogFile(originalFilePath, stringPtr("zip"))
+		err = compressLogFile(originalFilePath, "zip")
 		if err != nil {
 			t.Fatalf("compressLogFile() error: %v", err)
 		}
@@ -218,7 +215,6 @@ func TestCompressLogFile(t *testing.T) {
 			t.Fatalf("Failed to create zip reader: %v", err)
 		}
 
-		// Check for the existence of the original file inside the zip
 		if len(zipReader.File) == 0 || zipReader.File[0].Name != "test.log" {
 			t.Fatalf("Expected zipped file to contain 'test.log', got: %v", zipReader.File)
 		}

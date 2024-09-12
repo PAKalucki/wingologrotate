@@ -17,10 +17,12 @@ type LogEntry struct {
 }
 
 type Condition struct {
-	Age      *string `yaml:"age,omitempty"`
-	MaxKeep  *int    `yaml:"max_keep,omitempty"`
-	Size     *string `yaml:"size,omitempty"`
-	Compress *bool   `yaml:"compress,omitempty"`
+	Age               *string `yaml:"age,omitempty"` //since last modified
+	MaxKeep           *int    `yaml:"max_keep,omitempty"`
+	Size              *string `yaml:"size,omitempty"`
+	TimeInterval      *string `yaml:"time_interval,omitempty"`
+	Compress          *bool   `yaml:"compress,omitempty"`
+	CompressionFormat *string `yaml:"compression_format,omitempty"`
 }
 
 type Config struct {
@@ -35,6 +37,11 @@ func (entry *LogEntry) setDefaults() {
 		if entry.Condition.Compress == nil {
 			defaultCompress := true
 			entry.Condition.Compress = &defaultCompress
+		}
+
+		if entry.Condition.CompressionFormat == nil {
+			defaultFormat := "gzip"
+			entry.Condition.CompressionFormat = &defaultFormat
 		}
 	}
 }
