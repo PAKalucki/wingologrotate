@@ -148,7 +148,7 @@ func rotateLogFiles(logEntry LogEntry) {
 				log.Printf("Rotated log file: %s to %s", file, rotatedFilePath)
 
 				if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
-					if err := compressLogFile(rotatedFilePath); err != nil {
+					if err := compressLogFile(rotatedFilePath, "gzip"); err != nil { // todo read me from config
 						log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
 					} else {
 						log.Printf("Compressed log file: %s", rotatedFilePath)
