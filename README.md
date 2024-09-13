@@ -1,5 +1,5 @@
 ### About
-This project attempts to implement service similiar to unix logrotate as windows doesn't really have a valid equivalent.
+This project attempts to implement Windows service similiar to unix logrotate as windows doesn't really have a valid equivalent.
 
 ### Features
 - Delete or rotate logs (or any files really)
