@@ -1,6 +1,11 @@
 schedule: "*/30 * * * *"
 
 logs:
+- path: "C:\\workspace\\test\\test_logs\\test1\\*.txt"
+  type: rotate
+  condition:
+    age: "30m"
+
 - path: "C:\\workspace\\test\\test_logs\\test2\\*.txt"
   type: delete
   condition:
