@@ -5,11 +5,12 @@ logs:
   type: rotate
   condition:
     age: "30m"
+    max_keep: 5
 
 - path: "C:\\workspace\\test\\test_logs\\test2\\*.txt"
   type: delete
   condition:
-    age: "30m"
+    size: "5MB"
 
 - path:
     - "C:\\workspace\\test\\test_logs\\test3\\*.txt"
