@@ -2,6 +2,8 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -13,9 +15,10 @@ func TestRotateLogFiles(t *testing.T) {
 	tempDir := t.TempDir()
 
 	file1 := filepath.Join(tempDir, "log1.log")
-	file2 := filepath.Join(tempDir, "log2.log")
-	_ = os.WriteFile(file1, make([]byte, 1024*1024*5), 0644)  // 5MB log file
-	_ = os.WriteFile(file2, make([]byte, 1024*1024*10), 0644) // 10MB log file
+	originalContent := bytes.Repeat([]byte("a"), 1024*1024*2) // 2MB log file
+	if err := os.WriteFile(file1, originalContent, 0644); err != nil {
+		t.Fatalf("Failed to write test log file: %v", err)
+	}
 
 	logEntry := LogEntry{
 		Path: Paths{filepath.Join(tempDir, "*.log")},
@@ -30,13 +33,34 @@ func TestRotateLogFiles(t *testing.T) {
 	rotateLogFiles(logEntry)
 
 	compressedFiles, _ := filepath.Glob(filepath.Join(tempDir, "*.gz"))
-	if len(compressedFiles) == 0 {
-		t.Errorf("Expected compressed log files, but found none.")
+	if len(compressedFiles) != 1 {
+		t.Fatalf("Expected 1 compressed log file, but found %d", len(compressedFiles))
+	}
+
+	f, err := os.Open(compressedFiles[0])
+	if err != nil {
+		t.Fatalf("Failed to open compressed file: %v", err)
+	}
+	defer f.Close()
+
+	gz, err := gzip.NewReader(f)
+	if err != nil {
+		t.Fatalf("Failed to create gzip reader: %v", err)
+	}
+	defer gz.Close()
+
+	var buf bytes.Buffer
+	if _, err := io.Copy(&buf, gz); err != nil {
+		t.Fatalf("Failed to read compressed file: %v", err)
+	}
+
+	if !bytes.Equal(buf.Bytes(), originalContent) {
+		t.Errorf("Rotated log content mismatch")
 	}
 
 	remainingFiles, _ := filepath.Glob(filepath.Join(tempDir, "*.log"))
-	if len(remainingFiles) > 1 {
-		t.Errorf("Expected at most 1 log file, but found %d", len(remainingFiles))
+	if len(remainingFiles) != 0 {
+		t.Errorf("Expected no uncompressed log files, but found %d", len(remainingFiles))
 	}
 }
 
