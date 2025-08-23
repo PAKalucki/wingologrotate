@@ -11,6 +11,10 @@ func TestLoadConfig(t *testing.T) {
 logs:
   - path: "/path/to/log/*.log"
     type: delete
+    pre_script: "echo pre"
+    post_script: "echo post"
+    condition:
+      time_interval: "1h"
   - path:
       - "/path/to/log1/*.log"
       - "/path/to/log2/*.log"
@@ -36,6 +40,15 @@ schedule: "*/5 * * * *"
 
 	if config.Logs[0].Type != "delete" {
 		t.Errorf("Expected type 'delete', got %s", config.Logs[0].Type)
+	}
+	if config.Logs[0].PreScript == nil || *config.Logs[0].PreScript != "echo pre" {
+		t.Errorf("Expected pre_script 'echo pre', got %v", config.Logs[0].PreScript)
+	}
+	if config.Logs[0].PostScript == nil || *config.Logs[0].PostScript != "echo post" {
+		t.Errorf("Expected post_script 'echo post', got %v", config.Logs[0].PostScript)
+	}
+	if config.Logs[0].Condition == nil || config.Logs[0].Condition.TimeInterval == nil || *config.Logs[0].Condition.TimeInterval != "1h" {
+		t.Errorf("Expected time_interval '1h', got %v", config.Logs[0].Condition)
 	}
 
 	if len(config.Logs[1].Path) != 2 {

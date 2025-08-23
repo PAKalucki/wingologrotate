@@ -11,9 +11,11 @@ import (
 type Paths []string
 
 type LogEntry struct {
-	Path      Paths      `yaml:"path"`
-	Type      string     `yaml:"type"`
-	Condition *Condition `yaml:"condition,omitempty"`
+	Path       Paths      `yaml:"path"`
+	Type       string     `yaml:"type"`
+	Condition  *Condition `yaml:"condition,omitempty"`
+	PreScript  *string    `yaml:"pre_script,omitempty"`
+	PostScript *string    `yaml:"post_script,omitempty"`
 }
 
 type Condition struct {
@@ -31,20 +33,20 @@ type Config struct {
 }
 
 func (entry *LogEntry) setDefaults() {
-    if entry.Type != "rotate" {
-        return
-    }
-    if entry.Condition == nil {
-        entry.Condition = &Condition{}
-    }
-    if entry.Condition.Compress == nil {
-        defaultCompress := true
-        entry.Condition.Compress = &defaultCompress
-    }
-    if entry.Condition.CompressionFormat == nil {
-        defaultFormat := "gzip"
-        entry.Condition.CompressionFormat = &defaultFormat
-    }
+	if entry.Type != "rotate" {
+		return
+	}
+	if entry.Condition == nil {
+		entry.Condition = &Condition{}
+	}
+	if entry.Condition.Compress == nil {
+		defaultCompress := true
+		entry.Condition.Compress = &defaultCompress
+	}
+	if entry.Condition.CompressionFormat == nil {
+		defaultFormat := "gzip"
+		entry.Condition.CompressionFormat = &defaultFormat
+	}
 }
 
 func loadConfig(filePath string) (Config, error) {
