@@ -46,7 +46,28 @@ func runLogRotation() {
 }
 
 func createTask(logEntry LogEntry) func() {
+	var lastRun time.Time
 	return func() {
+		now := time.Now()
+		if logEntry.Condition != nil && logEntry.Condition.TimeInterval != nil {
+			interval, err := parseDuration(*logEntry.Condition.TimeInterval)
+			if err != nil {
+				log.Printf("Invalid time interval for paths %v: %v", logEntry.Path, err)
+				return
+			}
+			if !lastRun.IsZero() && now.Sub(lastRun) < interval {
+				log.Printf("Skipping task for paths %v; next run in %v", logEntry.Path, interval-now.Sub(lastRun))
+				return
+			}
+			lastRun = now
+		}
+
+		if logEntry.PreScript != nil {
+			if err := runScript(*logEntry.PreScript); err != nil {
+				log.Printf("Pre-script failed for paths %v: %v", logEntry.Path, err)
+			}
+		}
+
 		for _, path := range logEntry.Path {
 			log.Printf("Running task for path: %s", path)
 			matchingFiles, err := filepath.Glob(filepath.Clean(path))
@@ -91,6 +112,12 @@ func createTask(logEntry LogEntry) func() {
 
 			default:
 				log.Printf("Unsupported task type: %s", logEntry.Type)
+			}
+		}
+
+		if logEntry.PostScript != nil {
+			if err := runScript(*logEntry.PostScript); err != nil {
+				log.Printf("Post-script failed for paths %v: %v", logEntry.Path, err)
 			}
 		}
 	}
@@ -147,18 +174,18 @@ func rotateLogFiles(logEntry LogEntry) {
 				}
 				log.Printf("Rotated log file: %s to %s", file, rotatedFilePath)
 
-                if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
-                    // Use configured compression format if provided, default to gzip
-                    format := "gzip"
-                    if logEntry.Condition != nil && logEntry.Condition.CompressionFormat != nil {
-                        format = *logEntry.Condition.CompressionFormat
-                    }
-                    if err := compressLogFile(rotatedFilePath, format); err != nil {
-                        log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
-                    } else {
-                        log.Printf("Compressed log file: %s", rotatedFilePath)
-                    }
-                }
+				if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
+					// Use configured compression format if provided, default to gzip
+					format := "gzip"
+					if logEntry.Condition != nil && logEntry.Condition.CompressionFormat != nil {
+						format = *logEntry.Condition.CompressionFormat
+					}
+					if err := compressLogFile(rotatedFilePath, format); err != nil {
+						log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
+					} else {
+						log.Printf("Compressed log file: %s", rotatedFilePath)
+					}
+				}
 
 				if logEntry.Condition.MaxKeep != nil {
 					if err := removeOldLogFiles(filepath.Dir(file), filepath.Base(file), *logEntry.Condition.MaxKeep); err != nil {

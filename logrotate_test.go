@@ -3,12 +3,14 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"fmt"
 	"io"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestRotateLogFiles(t *testing.T) {
@@ -94,5 +96,58 @@ func TestCreateTask(t *testing.T) {
 
 	if !strings.Contains(logBuf.String(), "Running task for path: /tmp/test/logs/delete/*.log") {
 		t.Errorf("Expected log output for running task, got %s", logBuf.String())
+	}
+}
+
+func TestPrePostScripts(t *testing.T) {
+	tempDir := t.TempDir()
+	targetFile := filepath.Join(tempDir, "test.log")
+	if err := os.WriteFile(targetFile, []byte("data"), 0644); err != nil {
+		t.Fatalf("Failed to create log file: %v", err)
+	}
+	preFile := filepath.Join(tempDir, "pre.txt")
+	postFile := filepath.Join(tempDir, "post.txt")
+
+	logEntry := LogEntry{
+		Path:       Paths{targetFile},
+		Type:       "delete",
+		PreScript:  stringPtr(fmt.Sprintf("echo pre > %s", preFile)),
+		PostScript: stringPtr(fmt.Sprintf("echo post > %s", postFile)),
+	}
+
+	task := createTask(logEntry)
+	task()
+
+	if _, err := os.Stat(preFile); err != nil {
+		t.Errorf("pre script did not execute: %v", err)
+	}
+	if _, err := os.Stat(postFile); err != nil {
+		t.Errorf("post script did not execute: %v", err)
+	}
+}
+
+func TestTimeIntervalCondition(t *testing.T) {
+	tempDir := t.TempDir()
+	marker := filepath.Join(tempDir, "marker.txt")
+	logEntry := LogEntry{
+		Path:      Paths{filepath.Join(tempDir, "*.log")},
+		Type:      "delete",
+		PreScript: stringPtr(fmt.Sprintf("echo run >> %s", marker)),
+		Condition: &Condition{TimeInterval: stringPtr("1s")},
+	}
+
+	task := createTask(logEntry)
+	task()
+	task()
+	time.Sleep(1 * time.Second)
+	task()
+
+	data, err := os.ReadFile(marker)
+	if err != nil {
+		t.Fatalf("failed to read marker: %v", err)
+	}
+	lines := strings.Split(strings.TrimSpace(string(data)), "\n")
+	if len(lines) != 2 {
+		t.Fatalf("expected script to run twice, ran %d times", len(lines))
 	}
 }

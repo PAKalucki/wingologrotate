@@ -7,7 +7,9 @@ import (
 	"io"
 	"log"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -44,6 +46,18 @@ func closeLogFile() {
 			log.Printf("Error closing log file: %v", err)
 		}
 	}
+}
+
+func runScript(script string) error {
+	var cmd *exec.Cmd
+	if runtime.GOOS == "windows" {
+		cmd = exec.Command("cmd", "/C", script)
+	} else {
+		cmd = exec.Command("sh", "-c", script)
+	}
+	cmd.Stdout = logFile
+	cmd.Stderr = logFile
+	return cmd.Run()
 }
 
 func parseDuration(ageStr string) (time.Duration, error) {

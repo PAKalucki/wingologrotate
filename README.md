@@ -3,10 +3,9 @@ This project attempts to implement Windows service similiar to unix logrotate as
 
 ### Features
 - Delete or rotate logs (or any files really)
-- Option to delete/rotate conditionally based on file age or size
+- Option to delete/rotate conditionally based on file age, size, or time interval
 - Compression for rotated files in gzip/zip
-- TODO delete/rotate on time interval condition
-- TODO pre/post custom script
+- Support for pre/post custom scripts
 
 ### Configuration
 See configs/wingologrotate.yaml for example config.
