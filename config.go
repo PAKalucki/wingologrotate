@@ -31,19 +31,20 @@ type Config struct {
 }
 
 func (entry *LogEntry) setDefaults() {
-	if entry.Type == "rotate" && entry.Condition == nil {
-		entry.Condition = &Condition{}
-
-		if entry.Condition.Compress == nil {
-			defaultCompress := true
-			entry.Condition.Compress = &defaultCompress
-		}
-
-		if entry.Condition.CompressionFormat == nil {
-			defaultFormat := "gzip"
-			entry.Condition.CompressionFormat = &defaultFormat
-		}
-	}
+    if entry.Type != "rotate" {
+        return
+    }
+    if entry.Condition == nil {
+        entry.Condition = &Condition{}
+    }
+    if entry.Condition.Compress == nil {
+        defaultCompress := true
+        entry.Condition.Compress = &defaultCompress
+    }
+    if entry.Condition.CompressionFormat == nil {
+        defaultFormat := "gzip"
+        entry.Condition.CompressionFormat = &defaultFormat
+    }
 }
 
 func loadConfig(filePath string) (Config, error) {

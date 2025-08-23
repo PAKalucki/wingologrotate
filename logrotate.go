@@ -147,13 +147,18 @@ func rotateLogFiles(logEntry LogEntry) {
 				}
 				log.Printf("Rotated log file: %s to %s", file, rotatedFilePath)
 
-				if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
-					if err := compressLogFile(rotatedFilePath, "gzip"); err != nil { // todo read me from config
-						log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
-					} else {
-						log.Printf("Compressed log file: %s", rotatedFilePath)
-					}
-				}
+                if logEntry.Condition.Compress == nil || *logEntry.Condition.Compress {
+                    // Use configured compression format if provided, default to gzip
+                    format := "gzip"
+                    if logEntry.Condition != nil && logEntry.Condition.CompressionFormat != nil {
+                        format = *logEntry.Condition.CompressionFormat
+                    }
+                    if err := compressLogFile(rotatedFilePath, format); err != nil {
+                        log.Printf("Failed to compress rotated log file %s: %v", rotatedFilePath, err)
+                    } else {
+                        log.Printf("Compressed log file: %s", rotatedFilePath)
+                    }
+                }
 
 				if logEntry.Condition.MaxKeep != nil {
 					if err := removeOldLogFiles(filepath.Dir(file), filepath.Base(file), *logEntry.Condition.MaxKeep); err != nil {
